@@ -133,11 +133,6 @@ npm run build
 yarn build
 ```
 
-### Демо
-- GitHub Pages: [ссылка]
-- Vercel: [ссылка]
-- Netlify: [ссылка]
-
 
 ## 10. Автор
 
