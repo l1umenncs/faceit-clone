@@ -4,17 +4,18 @@
   box-sizing: border-box;
 }
 
-body {
-  background-color: #141414;
-  color: #ffffff;
-  font-family: 'Arial', sans-serif;
-}
-
-
-* {
-  box-sizing: border-box;
-}
-
 html, body {
   overflow-x: hidden;
 }
+
+body {
+  background: #0f0f0f;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0f0f0f; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #ff5500; }

@@ -1,28 +1,5 @@
-.settings__block {
-  background-color: #1f1f1f;
-  padding: 24px;
-}
-
-.settings__item {
-  display: flex;
-  justify-content: space-between;
-  padding: 14px 0;
-  border-bottom: 1px solid #2a2a2a;
-}
-
-.settings__item:last-child {
-  border-bottom: none;
-}
-
-.settings__label {
-  color: #888888;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.settings__value {
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
-}
+.settings__block { background: #1a1a1a; border-radius: 8px; padding: 24px; border: 1px solid #2a2a2a; }
+.settings__item { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #2a2a2a; }
+.settings__item:last-child { border-bottom: none; }
+.settings__label { color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+.settings__value { color: #fff; font-size: 14px; font-weight: 600; }

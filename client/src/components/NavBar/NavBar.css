@@ -1,34 +1,44 @@
-.navbar{
-    background-color: #1f1f1f;
-    padding: 0 40px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    gap: 30px;
-}
-
-.navbar a {
-    color: #ffffff;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-
-.navbar a:hover{
-    color: #ff5500;
-}
-
 .navbar {
+  background: #0f0f0f;
+  padding: 0 40px;
+  height: 60px;
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid #1f1f1f;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .navbar__left {
   display: flex;
   align-items: center;
   gap: 30px;
+}
+
+.navbar__left a:first-child {
+  color: #ff5500;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+.navbar__left a {
+  color: #aaa;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.navbar__left a:hover {
+  color: #fff;
+  border-bottom-color: #ff5500;
 }
 
 .navbar__right {
@@ -40,7 +50,7 @@
 .navbar__username {
   color: #ff5500;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
   text-transform: uppercase;
 }
 
@@ -49,44 +59,26 @@
   border: 1px solid #ff5500;
   color: #ff5500;
   padding: 6px 16px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
   letter-spacing: 1px;
+  border-radius: 4px;
+  transition: all 0.2s;
 }
 
 .navbar__logout:hover {
-  background-color: #ff5500;
-  color: #ffffff;
+  background: #ff5500;
+  color: #fff;
 }
-
 
 @media (max-width: 767px) {
-  .navbar {
-    padding: 0 16px;
-    height: 50px;
-  }
-
-  .navbar__left {
-    gap: 12px;
-  }
-
-  .navbar__left a {
-    font-size: 11px;
-  }
-
-  .navbar__username {
-    font-size: 11px;
-    max-width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  .navbar { padding: 0 16px; height: 50px; }
+  .navbar__left { gap: 12px; }
+  .navbar__left a { font-size: 10px; }
+  .navbar__username { font-size: 10px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
-
 @media (max-width: 480px) {
-  .navbar__left a:not(:first-child) {
-    display: none;
-  }
+  .navbar__left a:not(:first-child) { display: none; }
 }
