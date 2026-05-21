@@ -1,4 +1,7 @@
 {
+  "prisma": {
+    "seed": "npx ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@types/bcryptjs": "^2.4.6",
@@ -16,5 +19,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
     "ws": "^8.20.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1"
   }
 }
