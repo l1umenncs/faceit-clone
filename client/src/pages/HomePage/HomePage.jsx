@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import { getLevel } from "../../utils/eloLevel"
 import "./HomePage.css"
 
 const HomePage = () => {
@@ -39,15 +40,14 @@ const HomePage = () => {
                 <div className="elo-card__avatar">{user.username.slice(0,2).toUpperCase()}</div>
                 <div>
                   <p className="elo-card__username">{user.username}</p>
-                  <p className="elo-card__region">EU</p>
+                  <p className="elo-card__region">{user.region || "EU"}</p>
                 </div>
               </div>
               <div className="elo-card__right">
                 <span className="elo-card__label">Уровень мастерства</span>
                 <div className="elo-card__elo">
-                  <span className="elo-card__badge">10</span>
-                  <span className="elo-card__number">2 872</span>
-                  <span className="elo-card__change">+30</span>
+                  <span className="elo-card__badge" style={{ borderColor: getLevel(user.elo || 1000).color }}>{getLevel(user.elo || 1000).level}</span>
+                  <span className="elo-card__number">{user.elo || 1000}</span>
                 </div>
               </div>
             </div>
