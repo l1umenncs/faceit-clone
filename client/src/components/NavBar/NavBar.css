@@ -73,6 +73,25 @@
   color: #fff;
 }
 
+.navbar__login {
+  background: #ff5500;
+  border: 1px solid #ff5500;
+  color: #fff;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.navbar__login:hover {
+  background: #ff6a1a;
+  border-color: #ff6a1a;
+}
+
 @media (max-width: 767px) {
   .navbar { padding: 0 16px; height: 50px; }
   .navbar__left { gap: 12px; }

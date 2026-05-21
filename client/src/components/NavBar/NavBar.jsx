@@ -34,7 +34,7 @@ export default function Navbar() {
             <button className="navbar__logout" onClick={handleLogout}>Выйти</button>
           </>
         ) : (
-          <Link to="/login">Войти</Link>
+          <Link to="/login" className="navbar__login">Войти</Link>
         )}
       </div>
     </nav>
