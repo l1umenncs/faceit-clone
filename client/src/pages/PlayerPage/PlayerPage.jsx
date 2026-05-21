@@ -4,6 +4,7 @@ import { getLevel } from "../../utils/eloLevel"
 import { playerApi } from "../../services/playerApi"
 import { friendApi } from "../../services/friendApi"
 import { useAuth } from "../../context/AuthContext"
+import { Skeleton } from "../../components/Skeleton/Skeleton"
 import "./PlayerPage.css"
 
 const TABS = ["Игры", "Друзья", "Статистика", "Турниры"]
@@ -70,7 +71,29 @@ const PlayerPage = () => {
       .catch(() => {})
   }
 
-  if (loading) return <div className="player-page__loading">Загрузка...</div>
+  if (loading) return (
+    <div className="player-page">
+      <aside className="player-page__sidebar">
+        <div className="sidebar__cover"><Skeleton width="90px" height="90px" borderRadius="50%" /></div>
+        <div className="sidebar__body" style={{ paddingTop: "60px", alignItems: "center" }}>
+          <Skeleton width="60%" height="20px" />
+          <Skeleton width="40%" height="14px" />
+        </div>
+      </aside>
+      <div className="player-page__main">
+        <div className="player-page__tabs">
+          {[1,2,3,4].map(i => <Skeleton key={i} width="80px" height="48px" borderRadius="0" />)}
+        </div>
+        <div className="player-page__content">
+          <div className="elo__block">
+            <Skeleton width="100px" height="14px" />
+            <Skeleton width="70px" height="70px" borderRadius="50%" />
+            <Skeleton width="200px" height="14px" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
   if (!player) return <div className="player-page__loading">Игрок не найден</div>
 
   const { level, color } = getLevel(player.elo)

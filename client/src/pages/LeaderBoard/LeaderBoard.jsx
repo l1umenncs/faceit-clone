@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { getLevel } from "../../utils/eloLevel"
 import { leaderboardApi } from "../../services/leaderboardApi"
+import { SkeletonRow } from "../../components/Skeleton/Skeleton"
 import './LeaderBoard.css'
 
 const LeaderboardPage = () => {
@@ -17,7 +18,17 @@ const LeaderboardPage = () => {
       })
   }, [])
 
-  if (loading) return <div className="leaderboard__loading">Загрузка...</div>
+  if (loading) return (
+    <div className="leaderboard">
+      <h1 className="leaderboard__title">Таблица лидеров</h1>
+      <div className="leaderboard__table">
+        <div className="leaderboard__header-row">
+          <span>#</span> <span>Игрок</span> <span>Уровень</span> <span>ELO</span>
+        </div>
+        {[1,2,3,4,5,6,7,8].map(i => <SkeletonRow key={i} />)}
+      </div>
+    </div>
+  )
 
   return (
     <div className="leaderboard">

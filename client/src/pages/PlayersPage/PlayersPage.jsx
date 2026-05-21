@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { getLevel } from "../../utils/eloLevel"
 import { playerApi } from "../../services/playerApi"
+import { SkeletonCard } from "../../components/Skeleton/Skeleton"
 import "./PlayersPage.css"
 
 const PlayersPage = () => {
@@ -9,6 +10,8 @@ const PlayersPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [search, setSearch] = useState("")
+  const [eloMin, setEloMin] = useState("")
+  const [eloMax, setEloMax] = useState("")
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -23,24 +26,52 @@ const PlayersPage = () => {
       })
   }, [])
 
-  const filtered = players.filter(p =>
-    p.username.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = players.filter(p => {
+    const matchName = p.username.toLowerCase().includes(search.toLowerCase())
+    const matchEloMin = !eloMin || p.elo >= Number(eloMin)
+    const matchEloMax = !eloMax || p.elo <= Number(eloMax)
+    return matchName && matchEloMin && matchEloMax
+  })
 
-  if (loading) return <div className="players__loading">Загрузка...</div>
+  if (loading) return (
+    <div className="players">
+      <div className="players__header">
+        <h1 className="players__title">Игроки</h1>
+      </div>
+      <div className="players__grid">
+        {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
+      </div>
+    </div>
+  )
   if (error) return <div className="players__error">{error}</div>
 
   return (
     <div className="players">
       <div className="players__header">
         <h1 className="players__title">Игроки</h1>
-        <input
-          className="players__search"
-          type="text"
-          placeholder="Поиск игрока..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <div className="players__filters">
+          <input
+            className="players__search"
+            type="text"
+            placeholder="Поиск игрока..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <input
+            className="players__elo-input"
+            type="number"
+            placeholder="ELO от"
+            value={eloMin}
+            onChange={e => setEloMin(e.target.value)}
+          />
+          <input
+            className="players__elo-input"
+            type="number"
+            placeholder="ELO до"
+            value={eloMax}
+            onChange={e => setEloMax(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="players__grid">
