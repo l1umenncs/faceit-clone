@@ -1,16 +1,26 @@
 import { useAuth } from "../../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { getLevel } from "../../utils/eloLevel"
+import { friendApi } from "../../services/friendApi"
 import "./ProfilePage.css"
 
-const TABS = ["Игры", "Настройки"]
+const TABS = ["Игры", "Друзья", "Настройки"]
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 const ProfilePage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("Игры")
+  const [friends, setFriends] = useState([])
+  const [pending, setPending] = useState([])
+
+  useEffect(() => {
+    if (activeTab === "Друзья") {
+      friendApi.getFriends().then(setFriends).catch(() => {})
+      friendApi.getPending().then(setPending).catch(() => {})
+    }
+  }, [activeTab])
 
   if (!user) {
     navigate("/login")
@@ -89,6 +99,52 @@ const ProfilePage = () => {
                   <span className="stat__label">Матчей</span>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "Друзья" && (
+          <div className="player-page__content">
+            {pending.length > 0 && (
+              <div className="friends__block">
+                <h3 className="stats__title">Входящие заявки ({pending.length})</h3>
+                <div className="friends__grid">
+                  {pending.map(f => (
+                    <div key={f.id} className="friend__card">
+                      <div className="friend__avatar">{f.username.slice(0, 2).toUpperCase()}</div>
+                      <div className="friend__info">
+                        <span className="friend__name">{f.username}</span>
+                      </div>
+                      <div className="friend__btn-group">
+                        <button className="friend__btn friend__btn--accept" onClick={() => friendApi.acceptRequest(f.id).then(() => setPending(prev => prev.filter(p => p.id !== f.id)))}>Принять</button>
+                        <button className="friend__btn friend__btn--reject" onClick={() => friendApi.rejectRequest(f.id).then(() => setPending(prev => prev.filter(p => p.id !== f.id)))}>Отклонить</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="friends__block">
+              <h3 className="stats__title">Мои друзья ({friends.length})</h3>
+              {friends.length === 0 ? (
+                <p className="friends__empty">Список друзей пуст</p>
+              ) : (
+                <div className="friends__grid">
+                  {friends.map(f => {
+                    const { level, color } = getLevel(f.elo)
+                    return (
+                      <div key={f.id} className="friend__card" onClick={() => navigate(`/players/${f.id}`)}>
+                        <div className="friend__avatar">{f.username.slice(0, 2).toUpperCase()}</div>
+                        <div className="friend__info">
+                          <span className="friend__name">{f.username}</span>
+                          <span className="friend__elo" style={{ color }}>ELO {f.elo}</span>
+                        </div>
+                        <span className="friend__level" style={{ backgroundColor: color }}>{level}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}

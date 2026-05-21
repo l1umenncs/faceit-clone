@@ -2,6 +2,7 @@ import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import authRouter from "./routes/auth"
+import friendsRouter from "./routes/friends"
 import { WebSocketServer, WebSocket } from "ws"
 import http from "http"
 import axios from "axios"
@@ -18,6 +19,7 @@ app.use(cors({
 }))
 
 app.use("/api/auth", authRouter)
+app.use("/api/friends", friendsRouter)
 
 const clients = new Set<WebSocket>()
 

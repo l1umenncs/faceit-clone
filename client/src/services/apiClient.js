@@ -17,5 +17,5 @@ async function request(endpoint, options = {}) {
 export const api = {
   get: (endpoint) => request(endpoint),
   post: (endpoint, body) => request(endpoint, { method: "POST", body: JSON.stringify(body) }),
-  postForm: (endpoint, body) => request(endpoint, { method: "POST", body: JSON.stringify(body) }),
+  delete: (endpoint) => request(endpoint, { method: "DELETE" }),
 }

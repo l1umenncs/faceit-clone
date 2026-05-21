@@ -1,16 +1,23 @@
 import { useState, useEffect } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { getLevel } from "../../utils/eloLevel"
 import { playerApi } from "../../services/playerApi"
+import { friendApi } from "../../services/friendApi"
+import { useAuth } from "../../context/AuthContext"
 import "./PlayerPage.css"
 
 const TABS = ["Игры", "Друзья", "Статистика", "Турниры"]
 
 const PlayerPage = () => {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const { user } = useAuth()
   const [player, setPlayer] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("Игры")
+  const [friendStatus, setFriendStatus] = useState(null)
+  const [friendLoading, setFriendLoading] = useState(false)
+  const [friends, setFriends] = useState([])
 
   useEffect(() => {
     playerApi.getById(id)
@@ -19,6 +26,49 @@ const PlayerPage = () => {
         setLoading(false)
       })
   }, [id])
+
+  useEffect(() => {
+    if (!user || !player || user.id === player.id) return
+    friendApi.getStatus(player.id)
+      .then(data => setFriendStatus(data))
+      .catch(() => {})
+  }, [user, player])
+
+  const isOwn = user && player && user.id === player.id
+
+  const handleFriendAction = async (action) => {
+    if (!player) return
+    setFriendLoading(true)
+    try {
+      if (action === "send") {
+        await friendApi.sendRequest(player.id)
+        setFriendStatus({ status: "PENDING", direction: "sent" })
+      } else if (action === "accept") {
+        await friendApi.acceptRequest(player.id)
+        setFriendStatus({ status: "ACCEPTED", direction: "received" })
+      } else if (action === "reject") {
+        await friendApi.rejectRequest(player.id)
+        setFriendStatus(null)
+      } else if (action === "remove") {
+        await friendApi.removeFriend(player.id)
+        setFriendStatus(null)
+      }
+    } catch (e) {
+      alert(e.message)
+    }
+    setFriendLoading(false)
+  }
+
+  useEffect(() => {
+    if (activeTab === "Друзья") loadFriends()
+  }, [activeTab, player])
+
+  const loadFriends = () => {
+    if (!player) return
+    friendApi.getUserFriends(player.id)
+      .then(setFriends)
+      .catch(() => {})
+  }
 
   if (loading) return <div className="player-page__loading">Загрузка...</div>
   if (!player) return <div className="player-page__loading">Игрок не найден</div>
@@ -40,6 +90,48 @@ const PlayerPage = () => {
         </div>
         <div className="sidebar__body">
           <h2 className="sidebar__name">{player.username}</h2>
+          {!isOwn && user && (
+            <div className="sidebar__friend-actions">
+              {friendStatus?.status === "ACCEPTED" ? (
+                <button
+                  className="friend__btn friend__btn--remove"
+                  onClick={() => handleFriendAction("remove")}
+                  disabled={friendLoading}
+                >
+                  ✕ В друзьях
+                </button>
+              ) : friendStatus?.status === "PENDING" && friendStatus.direction === "sent" ? (
+                <button className="friend__btn friend__btn--pending" disabled>
+                  ⌛ Заявка отправлена
+                </button>
+              ) : friendStatus?.status === "PENDING" && friendStatus.direction === "received" ? (
+                <div className="friend__btn-group">
+                  <button
+                    className="friend__btn friend__btn--accept"
+                    onClick={() => handleFriendAction("accept")}
+                    disabled={friendLoading}
+                  >
+                    ✓ Принять
+                  </button>
+                  <button
+                    className="friend__btn friend__btn--reject"
+                    onClick={() => handleFriendAction("reject")}
+                    disabled={friendLoading}
+                  >
+                    ✕ Отклонить
+                  </button>
+                </div>
+              ) : (
+                <button
+                  className="friend__btn friend__btn--add"
+                  onClick={() => handleFriendAction("send")}
+                  disabled={friendLoading}
+                >
+                  + Добавить в друзья
+                </button>
+              )}
+            </div>
+          )}
           <div className="sidebar__meta">
             <p className="sidebar__meta-item">
               📅 Участник с {new Date(player.createdAt).toLocaleDateString("ru-RU")}
@@ -126,7 +218,27 @@ const PlayerPage = () => {
 
         {activeTab === "Друзья" && (
           <div className="player-page__content">
-            <p style={{ color: "#888" }}>Список друзей — в разработке</p>
+            <div className="friends__block">
+              {friends.length === 0 ? (
+                <p className="friends__empty">Список друзей пуст</p>
+              ) : (
+                <div className="friends__grid">
+                  {friends.map(f => {
+                    const { level, color } = getLevel(f.elo)
+                    return (
+                      <div key={f.id} className="friend__card" onClick={() => navigate(`/players/${f.id}`)}>
+                        <div className="friend__avatar">{f.username.slice(0, 2).toUpperCase()}</div>
+                        <div className="friend__info">
+                          <span className="friend__name">{f.username}</span>
+                          <span className="friend__elo" style={{ color }}>ELO {f.elo}</span>
+                        </div>
+                        <span className="friend__level" style={{ backgroundColor: color }}>{level}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
