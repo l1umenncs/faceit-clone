@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react"
+import { authApi } from "../services/authApi"
 
 const AuthContext = createContext(null)
 
@@ -7,13 +8,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/auth/me", {
-      credentials: "include"
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.username) setUser(data)
-      })
+    authApi.getMe()
+      .then(data => setUser(data))
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])

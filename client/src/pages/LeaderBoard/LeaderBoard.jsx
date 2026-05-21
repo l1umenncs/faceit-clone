@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { getLevel } from "../../utils/eloLevel"
-import "./LeaderboardPage.css"
+import { leaderboardApi } from "../../services/leaderboardApi"
+import './LeaderBoard.css'
 
 const LeaderboardPage = () => {
   const [players, setPlayers] = useState([])
@@ -9,10 +10,7 @@ const LeaderboardPage = () => {
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/auth/leaderboard", {
-      credentials: "include"
-    })
-      .then(res => res.json())
+    leaderboardApi.get()
       .then(data => {
         setPlayers(data)
         setLoading(false)

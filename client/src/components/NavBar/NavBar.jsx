@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import { authApi } from "../../services/authApi"
 import "./NavBar.css"
 
 export default function Navbar() {
@@ -7,10 +8,7 @@ export default function Navbar() {
   const navigate = useNavigate()
 
   const handleLogout = async () => {
-    await fetch("http://localhost:3001/api/auth/logout", {
-      method: "POST",
-      credentials: "include"
-    })
+    await authApi.logout()
     setUser(null)
     navigate("/login")
   }

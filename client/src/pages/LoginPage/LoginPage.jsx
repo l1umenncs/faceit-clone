@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import { authApi } from "../../services/authApi"
 import "./LoginPage.css"
 
 const LoginPage = () => {
@@ -17,29 +18,15 @@ const LoginPage = () => {
       return
     }
 
-    const url = isLogin
-      ? "http://localhost:3001/api/auth/login"
-      : "http://localhost:3001/api/auth/register"
-
     try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ username, password })
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error)
-        return
-      }
+      const data = isLogin
+        ? await authApi.login(username, password)
+        : await authApi.register(username, password)
 
       setUser(data)
       navigate("/")
     } catch (err) {
-      setError("Ошибка сервера")
+      setError(err.message)
     }
   }
 

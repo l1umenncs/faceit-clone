@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { getLevel } from "../../utils/eloLevel"
+import { playerApi } from "../../services/playerApi"
 import "./PlayersPage.css"
 
 const PlayersPage = () => {
@@ -11,10 +12,7 @@ const PlayersPage = () => {
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/auth/players", {
-      credentials: "include"
-    })
-      .then(res => res.json())
+    playerApi.getAll()
       .then(data => {
         setPlayers(data)
         setLoading(false)

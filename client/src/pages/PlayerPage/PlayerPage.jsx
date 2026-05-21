@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { getLevel } from "../../utils/eloLevel"
+import { playerApi } from "../../services/playerApi"
 import "./PlayerPage.css"
 
 const TABS = ["Игры", "Друзья", "Статистика", "Турниры"]
@@ -12,10 +13,7 @@ const PlayerPage = () => {
   const [activeTab, setActiveTab] = useState("Игры")
 
   useEffect(() => {
-    fetch(`http://localhost:3001/api/auth/players/${id}`, {
-      credentials: "include"
-    })
-      .then(res => res.json())
+    playerApi.getById(id)
       .then(data => {
         setPlayer(data)
         setLoading(false)
