@@ -55,7 +55,7 @@ const HomePage = () => {
 
           {/* //ТРИПЛА */}
           <div className="home__cards">
-            <div className="home__card" onClick={() => navigate("/players")}>
+            <div className="home__card" onClick={() => navigate("/matches")}>
               <div className="home__card-icon">⚔️</div>
               <p className="home__card-label">Матчмейкинг</p>
             </div>
