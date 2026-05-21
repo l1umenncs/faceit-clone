@@ -20,7 +20,10 @@ router.post("/register", async (req: Request, res: Response) => {
   const hashedPassword = await bcrypt.hash(password, 10)
 
   const newUser = await prisma.user.create({
-    data: { username, password: hashedPassword }
+    data:
+     { username,
+       password: hashedPassword,
+      elo: Math.floor(Math.random() * 2500) + 100 }
   })
 
   res.cookie("user", JSON.stringify({ id: newUser.id, username }), {
@@ -101,6 +104,24 @@ router.get("/players/:id", async (req: Request, res: Response) => {
   }
 
   res.json(player)
+})
+
+
+
+router.get("/leaderboard", async (req: Request, res: Response) => {
+  const players = await prisma.user.findMany({
+    select: {
+      id: true,
+      username: true,
+      elo: true,
+      createdAt: true
+    },
+    orderBy: {
+      elo: "desc"
+    },
+    take: 100
+  })
+  res.json(players)
 })
 
 
