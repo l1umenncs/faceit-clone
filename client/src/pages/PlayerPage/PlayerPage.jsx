@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { getLevel } from "../../utils/eloLevel"
 import { playerApi } from "../../services/playerApi"
 import { friendApi } from "../../services/friendApi"
+import { matchApi } from "../../services/matchApi"
 import { useAuth } from "../../context/AuthContext"
 import { Skeleton } from "../../components/Skeleton/Skeleton"
 import "./PlayerPage.css"
@@ -19,6 +20,7 @@ const PlayerPage = () => {
   const [friendStatus, setFriendStatus] = useState(null)
   const [friendLoading, setFriendLoading] = useState(false)
   const [friends, setFriends] = useState([])
+  const [matchHistory, setMatchHistory] = useState([])
 
   useEffect(() => {
     playerApi.getById(id)
@@ -70,6 +72,14 @@ const PlayerPage = () => {
       .then(setFriends)
       .catch(() => {})
   }
+
+  useEffect(() => {
+    if (player && (activeTab === "Турниры" || activeTab === "Статистика")) {
+      matchApi.history(player.id)
+        .then(setMatchHistory)
+        .catch(() => {})
+    }
+  }, [activeTab, player])
 
   if (loading) return (
     <div className="player-page">
@@ -267,7 +277,28 @@ const PlayerPage = () => {
 
         {activeTab === "Турниры" && (
           <div className="player-page__content">
-            <p style={{ color: "#888" }}>Турниры — в разработке</p>
+            <div className="matches__block">
+              <h3 className="stats__title">История матчей</h3>
+              {matchHistory.length === 0 ? (
+                <p className="friends__empty">Матчей не найдено</p>
+              ) : (
+                <div className="match-history__list">
+                  {matchHistory.map(m => {
+                    const playerEntry = m.players?.find(p => p.userId === player.id)
+                    return (
+                      <div key={m.id} className="match-history__row" onClick={() => navigate(`/matches/${m.id}`)}>
+                        <span className="match-history__game">{m.game}</span>
+                        <span className={`match__status-match ${m.status === "FINISHED" ? "status--finished" : m.status === "IN_PROGRESS" ? "status--live" : "status--waiting"}`}>
+                          {m.status === "WAITING" ? "ОЖИДАНИЕ" : m.status === "IN_PROGRESS" ? "ИДЁТ" : "ЗАВЕРШЁН"}
+                        </span>
+                        <span className="match-history__players">{m.players?.length}/{m.maxPlayers}</span>
+                        <span className="match-history__date">{new Date(m.createdAt).toLocaleDateString("ru-RU")}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -1,6 +1,7 @@
 import { useAuth } from "../../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 import { getLevel } from "../../utils/eloLevel"
+import { profileApi } from "../../services/profileApi"
 import { friendApi } from "../../services/friendApi"
 import "./ProfilePage.css"
 
@@ -8,12 +9,17 @@ const TABS = ["Игры", "Друзья", "Настройки"]
 
 import { useState, useEffect } from "react"
 
+const REGIONS = ["EU", "NA", "AS", "SA", "OC"]
+
 const ProfilePage = () => {
-  const { user } = useAuth()
+  const { user, setUser } = useAuth()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("Игры")
   const [friends, setFriends] = useState([])
   const [pending, setPending] = useState([])
+  const [description, setDescription] = useState(user?.description || "")
+  const [region, setRegion] = useState(user?.region || "EU")
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (activeTab === "Друзья") {
@@ -27,12 +33,16 @@ const ProfilePage = () => {
     return null
   }
 
-  const elo = ((user.username.length * 317) % 2500) + 100
-  const { level, color } = getLevel(elo)
-  const matches = ((user.username.length * 211) % 2000) + 100
-  const winrate = ((user.username.length * 137) % 40) + 40
-  const kd = (((user.username.length * 173) % 100) / 100 + 0.8).toFixed(2)
-  const kills = ((user.username.length * 97) % 15) + 15
+  const { level, color } = getLevel(user.elo || 1000)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const updated = await profileApi.update({ description, region })
+      setUser({ ...user, ...updated })
+    } catch (e) { alert(e.message) }
+    setSaving(false)
+  }
 
   return (
     <div className="player-page">
@@ -45,7 +55,9 @@ const ProfilePage = () => {
         <div className="sidebar__body">
           <h2 className="sidebar__name">{user.username}</h2>
           <div className="sidebar__meta">
-            <p className="sidebar__meta-item">📅 Участник с 2025 г.</p>
+            {user.description && <p className="sidebar__meta-item">{user.description}</p>}
+            <p className="sidebar__meta-item">Регион: {user.region || "EU"}</p>
+            <p className="sidebar__meta-item">📅 Участник с {user.createdAt ? new Date(user.createdAt).toLocaleDateString("ru-RU") : "2025 г."}</p>
           </div>
         </div>
       </aside>
@@ -53,11 +65,9 @@ const ProfilePage = () => {
       <div className="player-page__main">
         <div className="player-page__tabs">
           {TABS.map(tab => (
-            <button
-              key={tab}
+            <button key={tab}
               className={`tab__btn ${activeTab === tab ? "tab__btn--active" : ""}`}
-              onClick={() => setActiveTab(tab)}
-            >
+              onClick={() => setActiveTab(tab)}>
               {tab}
             </button>
           ))}
@@ -71,33 +81,10 @@ const ProfilePage = () => {
                 <div className="elo__badge" style={{ borderColor: color }}>
                   {level}
                 </div>
-                <div className="elo__number">{elo}</div>
+                <div className="elo__number">{user.elo || 1000}</div>
               </div>
               <div className="elo__summary">
-                <span>{matches} матчей</span>
-                <span className="elo__winrate">{winrate}% побед</span>
-              </div>
-            </div>
-
-            <div className="stats__block">
-              <h3 className="stats__title">Статистика</h3>
-              <div className="stats__grid">
-                <div className="stat__card">
-                  <span className="stat__value">{kd}</span>
-                  <span className="stat__label">K/D Ratio</span>
-                </div>
-                <div className="stat__card">
-                  <span className="stat__value">{winrate}%</span>
-                  <span className="stat__label">Винрейт</span>
-                </div>
-                <div className="stat__card">
-                  <span className="stat__value">{kills}</span>
-                  <span className="stat__label">Убийств/игра</span>
-                </div>
-                <div className="stat__card">
-                  <span className="stat__value">{matches}</span>
-                  <span className="stat__label">Матчей</span>
-                </div>
+                <span>ELO рейтинг</span>
               </div>
             </div>
           </div>
@@ -116,8 +103,10 @@ const ProfilePage = () => {
                         <span className="friend__name">{f.username}</span>
                       </div>
                       <div className="friend__btn-group">
-                        <button className="friend__btn friend__btn--accept" onClick={() => friendApi.acceptRequest(f.id).then(() => setPending(prev => prev.filter(p => p.id !== f.id)))}>Принять</button>
-                        <button className="friend__btn friend__btn--reject" onClick={() => friendApi.rejectRequest(f.id).then(() => setPending(prev => prev.filter(p => p.id !== f.id)))}>Отклонить</button>
+                        <button className="friend__btn friend__btn--accept"
+                          onClick={() => friendApi.acceptRequest(f.id).then(() => setPending(prev => prev.filter(p => p.id !== f.id)))}>Принять</button>
+                        <button className="friend__btn friend__btn--reject"
+                          onClick={() => friendApi.rejectRequest(f.id).then(() => setPending(prev => prev.filter(p => p.id !== f.id)))}>Отклонить</button>
                       </div>
                     </div>
                   ))}
@@ -157,10 +146,22 @@ const ProfilePage = () => {
                 <span className="settings__label">Никнейм</span>
                 <span className="settings__value">{user.username}</span>
               </div>
-              <div className="settings__item">
-                <span className="settings__label">Участник с</span>
-                <span className="settings__value">2025 г.</span>
+              <div className="settings__field">
+                <label className="settings__label">О себе</label>
+                <textarea className="settings__textarea" rows={3}
+                  placeholder="Расскажи о себе..."
+                  value={description}
+                  onChange={e => setDescription(e.target.value)} />
               </div>
+              <div className="settings__field">
+                <label className="settings__label">Регион</label>
+                <select className="settings__select" value={region} onChange={e => setRegion(e.target.value)}>
+                  {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <button className="settings__save" onClick={handleSave} disabled={saving}>
+                {saving ? "Сохранение..." : "Сохранить"}
+              </button>
             </div>
           </div>
         )}

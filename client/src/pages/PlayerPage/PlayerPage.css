@@ -148,6 +148,19 @@
 .friend__elo { font-size: 12px; }
 .friend__level { font-size: 11px; font-weight: 700; color: #fff; padding: 3px 8px; border-radius: 4px; }
 
+.match-history__list { display: flex; flex-direction: column; }
+
+.match-history__row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 0; border-bottom: 1px solid #2a2a2a; cursor: pointer; transition: background 0.2s;
+}
+.match-history__row:hover { background: #0f0f0f; margin: 0 -24px; padding: 12px 24px; }
+.match-history__row:last-child { border-bottom: none; }
+
+.match-history__game { flex: 1; font-size: 14px; font-weight: 600; color: #e0e0e0; }
+.match-history__players { font-size: 13px; color: #666; }
+.match-history__date { font-size: 12px; color: #555; }
+
 .player-page__loading { display: flex; justify-content: center; align-items: center; height: calc(100vh - 60px); font-size: 20px; color: #666; }
 
 @media (max-width: 1199px) {

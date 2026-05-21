@@ -3,9 +3,11 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 import authRouter from "./routes/auth"
 import friendsRouter from "./routes/friends"
+import matchesRouter from "./routes/matches"
+import notificationsRouter from "./routes/notifications"
 import { WebSocketServer, WebSocket } from "ws"
 import http from "http"
-import axios from "axios"
+import { PrismaClient } from "@prisma/client"
 
 const app = express()
 const server = http.createServer(app)
@@ -20,7 +22,10 @@ app.use(cors({
 
 app.use("/api/auth", authRouter)
 app.use("/api/friends", friendsRouter)
+app.use("/api/matches", matchesRouter)
+app.use("/api/notifications", notificationsRouter)
 
+const prisma = new PrismaClient()
 const clients = new Set<WebSocket>()
 
 const broadcast = (message: object) => {
@@ -31,28 +36,36 @@ const broadcast = (message: object) => {
   })
 }
 
+const replies: Record<string, string> = {
+  elo: "ELO — это рейтинг мастерства на FACEIT. Максимальный уровень — 10 (2001+ ELO). Каждый уровень имеет свой цвет: 1-2 серый, 3-4 зелёный, 5-7 жёлтый/оранжевый, 8-9 красный, 10 — бордовый.",
+  level: "Всего 10 уровней мастерства. Чем выше ELO, тем выше уровень. Для повышения уровня нужно выигрывать матчи и набирать ELO.",
+  tournament: "На платформе доступны турниры по CS2, Dota 2 и Valorant. Призовые — от $250 до $25,000. Заходи в раздел Турниры, чтобы зарегистрироваться.",
+  match: "Матчи создаются в разделе Матчи. Там же можно присоединиться к существующим. Игроки делятся на две команды автоматически.",
+  регистраци: "Для регистрации нажми Войти в правом верхнем углу и выбери Зарегистрироваться. Нужен никнейм и пароль.",
+  друг: "Чтобы добавить друга — зайди на его страницу и нажми + Добавить в друзья. После принятия заявки вы будете отображаться в списке друзей.",
+  привет: "Привет! Чем могу помочь? Расскажу про ELO, турниры, матчи или друзей.",
+  как: "Я бот поддержки FACEIT Clone. Могу рассказать про уровни, ELO, турниры, матчи и друзей. Просто спроси!",
+  спасиб: "Всегда пожалуйста! Если будут вопросы — обращайся 👍",
+  чат: "Этот чат — общий. Все сообщения видят все участники. Я — автоматический бот поддержки.",
+  "cs2": "CS2 — основная дисциплина на FACEIT. Доступны матчи 5v5, турниры и лиги. Твой навык измеряется ELO.",
+  "dota": "Dota 2 доступна на платформе. Участвуй в турнирах, находи команду и поднимай ELO.",
+  "valoran": "Valorant поддерживается на FACEIT Clone. Создавай матчи и соревнуйся с другими игроками.",
+}
+
 const getBotReply = async (text: string): Promise<string> => {
-  try {
-    const response = await axios.post(
-      "https://api.anthropic.com/v1/messages",
-      {
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 200,
-        system: "Ты бот поддержки сайта FACEIT Clone. Отвечай кратко, по делу, на русском языке. Помогай с вопросами об ELO, турнирах, регистрации и игровой платформе.",
-        messages: [{ role: "user", content: text }]
-      },
-      {
-        headers: {
-          "x-api-key": "ТВОЙ_API_KEY",
-          "anthropic-version": "2023-06-01",
-          "content-type": "application/json"
-        }
-      }
-    )
-    return response.data.content[0].text
-  } catch (e) {
-    return "Извините, не могу ответить прямо сейчас. Попробуйте позже."
+  const lower = text.toLowerCase()
+
+  for (const [keyword, reply] of Object.entries(replies)) {
+    if (lower.includes(keyword)) return reply
   }
+
+  const responses = [
+    "Хороший вопрос! Попробуй написать мне про ELO, турниры, матчи или друзей — я всё расскажу.",
+    "Я ещё учусь, но могу помочь с информацией о платформе. Спроси про уровни, матчи или турниры.",
+    "Напиши мне о чём-то конкретном: ELO, друзья, турниры, матчи, регистрация.",
+    "Я знаю всё про FACEIT Clone! Спроси про рейтинг, команды или соревнования.",
+  ]
+  return responses[Math.floor(Math.random() * responses.length)]
 }
 
 wss.on("connection", (ws) => {

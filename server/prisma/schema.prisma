@@ -12,10 +12,28 @@ model User {
   username  String   @unique
   password  String
   elo       Int      @default(1000)
+  description String?
+  region    String   @default("EU")
+  avatar    String?  // color hex
   createdAt DateTime @default(now())
 
-  sentFriendships     Friendship[] @relation("SentRequests")
-  receivedFriendships Friendship[] @relation("ReceivedRequests")
+  sentFriendships     Friendship[]    @relation("SentRequests")
+  receivedFriendships Friendship[]    @relation("ReceivedRequests")
+  createdMatches      Match[]         @relation("CreatedMatches")
+  matchPlayers        MatchPlayer[]
+  notifications       Notification[]
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String   // friend_request, friend_accepted, match_invite, match_started
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Friendship {
@@ -29,4 +47,32 @@ model Friendship {
   receiver User @relation("ReceivedRequests", fields: [receiverId], references: [id])
 
   @@unique([senderId, receiverId])
+}
+
+model Match {
+  id         Int      @id @default(autoincrement())
+  game       String
+  status     String   @default("WAITING")
+  maxPlayers Int      @default(10)
+  createdById Int
+  createdAt  DateTime @default(now())
+  finishedAt DateTime?
+
+  creator User          @relation("CreatedMatches", fields: [createdById], references: [id])
+  players MatchPlayer[]
+}
+
+model MatchPlayer {
+  id      Int    @id @default(autoincrement())
+  matchId Int
+  userId  Int
+  team    Int?
+  kills   Int    @default(0)
+  deaths  Int    @default(0)
+  win     Boolean?
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([matchId, userId])
 }

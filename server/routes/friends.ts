@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express"
 import { PrismaClient } from "@prisma/client"
+import { createNotification } from "./notifications"
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -12,6 +13,10 @@ const getUserId = (req: Request): number | null => {
   } catch {
     return null
   }
+}
+
+const getUser = async (id: number) => {
+  return prisma.user.findUnique({ where: { id }, select: { id: true, username: true } })
 }
 
 // заявка в друзья
@@ -32,9 +37,15 @@ router.post("/request/:userId", async (req: Request, res: Response) => {
   })
   if (reverse) { res.status(400).json({ error: "Заявка уже существует" }); return }
 
+  const sender = await getUser(senderId)
+
   await prisma.friendship.create({
     data: { senderId, receiverId, status: "PENDING" }
   })
+
+  await createNotification(prisma, receiverId, "friend_request",
+    `${sender?.username} хочет добавить тебя в друзья`,
+    `/players/${senderId}`)
 
   res.json({ message: "Заявка отправлена" })
 })
@@ -55,10 +66,16 @@ router.post("/accept/:userId", async (req: Request, res: Response) => {
     return
   }
 
+  const accepter = await getUser(userId)
+
   await prisma.friendship.update({
     where: { id: friendship.id },
     data: { status: "ACCEPTED" }
   })
+
+  await createNotification(prisma, senderId, "friend_accepted",
+    `${accepter?.username} принял(а) заявку в друзья`,
+    `/players/${userId}`)
 
   res.json({ message: "Заявка принята" })
 })

@@ -12,16 +12,18 @@ const HomePage = () => {
       {/* //БАННЕР */}
       <div className="home__banner">
         <div className="banner__content">
-          <h2 className="banner__title">Season 8 is live</h2>
-          <p className="banner__subtitle">Начни placement матчи, исследуй FACEIT Rating и играй на новых картах.</p>
-          <button className="banner__btn" onClick={() => navigate("/tournaments")}>
-            УЗНАТЬ БОЛЬШЕ
+          <h2 className="banner__title">Найди свою игру</h2>
+          <p className="banner__subtitle">Соревнуйся в CS2, Dota 2 и Valorant. Участвуй в турнирах, поднимай ELO и попади в топ лидерборда.</p>
+          <button className="banner__btn" onClick={() => navigate("/matches")}>
+            НАЧАТЬ ИГРАТЬ
           </button>
         </div>
         <div className="banner__levels">
-          {[1,2,3,4,5].map(i => (
-            <div key={i} className="banner__level-badge">S8</div>
-          ))}
+          <div className="banner__level-badge" style={{ background: "linear-gradient(135deg, #d3d3d3, #999)" }}>1</div>
+          <div className="banner__level-badge" style={{ background: "linear-gradient(135deg, #00cc44, #009933)" }}>3</div>
+          <div className="banner__level-badge" style={{ background: "linear-gradient(135deg, #f5a623, #cc8800)" }}>5</div>
+          <div className="banner__level-badge" style={{ background: "linear-gradient(135deg, #ff5500, #cc3300)" }}>8</div>
+          <div className="banner__level-badge" style={{ background: "linear-gradient(135deg, #cc0000, #990000)" }}>10</div>
         </div>
       </div>
           {/* //ПРАВАЯ ЧАСТЬ */}
