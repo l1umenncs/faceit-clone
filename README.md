@@ -2,7 +2,7 @@
 
 Клон платформы [FACEIT.com](https://www.faceit.com) — игровая платформа для соревновательных матчей по CS2, Dota 2 и Valorant.
 
-**Стек:** React + Vite (клиент), Express + Prisma + SQLite (сервер), WebSocket (чат)
+**Стек:** React 19 + Vite (клиент), Express 5 + Prisma + PostgreSQL (сервер), WebSocket (чат)
 
 ---
 
@@ -26,12 +26,14 @@
 ### Требования
 - Node.js ≥ 18.x
 - npm
+- PostgreSQL
 
 ### Сервер
 
 ```bash
 cd server
 npm install
+# настроить DATABASE_URL в .env
 npx prisma migrate deploy
 npx ts-node index.ts
 ```
@@ -64,7 +66,7 @@ faceit-clone/
 │       ├── services/        # apiClient, authApi, playerApi, friendApi,
 │       │                    # matchApi, notificationApi, profileApi
 │       └── utils/           # eloLevel
-├── server/                  # Express + Prisma + SQLite
+├── server/                  # Express + Prisma + PostgreSQL
 │   ├── prisma/
 │   │   └── schema.prisma    # User, Friendship, Match, MatchPlayer, Notification
 │   └── routes/              # auth, friends, matches, notifications

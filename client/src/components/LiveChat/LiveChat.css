@@ -96,3 +96,11 @@
 
 .livechat__msg--bot .msg__username { color: #00cc44; }
 .livechat__msg--bot .msg__text { background: #112211; border-left: 2px solid #00cc44; border-radius: 6px; }
+
+.livechat__system {
+  text-align: center;
+  font-size: 11px;
+  color: #555;
+  padding: 4px 0;
+  font-style: italic;
+}

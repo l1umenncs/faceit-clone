@@ -1,4 +1,4 @@
-import express from "express"
+import express, { Request, Response, NextFunction } from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import authRouter from "./routes/auth"
@@ -7,7 +7,25 @@ import matchesRouter from "./routes/matches"
 import notificationsRouter from "./routes/notifications"
 import { WebSocketServer, WebSocket } from "ws"
 import http from "http"
+import httpShim from "http"
 import { PrismaClient } from "@prisma/client"
+
+interface WsUser {
+  id: number
+  username: string
+}
+
+interface AuthSocket extends WebSocket {
+  user?: WsUser
+}
+
+export class AppError extends Error {
+  statusCode: number
+  constructor(message: string, statusCode: number = 500) {
+    super(message)
+    this.statusCode = statusCode
+  }
+}
 
 const app = express()
 const server = http.createServer(app)
@@ -26,14 +44,26 @@ app.use("/api/matches", matchesRouter)
 app.use("/api/notifications", notificationsRouter)
 
 const prisma = new PrismaClient()
-const clients = new Set<WebSocket>()
+const clients = new Set<AuthSocket>()
 
-const broadcast = (message: object) => {
+const time = () =>
+  new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
+
+const broadcast = (message: object, exclude?: AuthSocket) => {
   clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
+    if (client !== exclude && client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(message))
     }
   })
+}
+
+const parseCookie = (header: string | undefined, name: string): string | null => {
+  if (!header) return null
+  for (const part of header.split(";")) {
+    const [key, ...rest] = part.trim().split("=")
+    if (key === name) return decodeURIComponent(rest.join("="))
+  }
+  return null
 }
 
 const replies: Record<string, string> = {
@@ -68,38 +98,76 @@ const getBotReply = async (text: string): Promise<string> => {
   return responses[Math.floor(Math.random() * responses.length)]
 }
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws: AuthSocket, req: httpShim.IncomingMessage) => {
+  const cookie = parseCookie(req.headers.cookie, "user")
+  let user: WsUser | null = null
+
+  if (cookie) {
+    try {
+      const parsed = JSON.parse(cookie)
+      if (parsed.id && parsed.username) user = { id: parsed.id, username: parsed.username }
+    } catch {}
+  }
+
+  if (!user) {
+    ws.send(JSON.stringify({ type: "error", text: "Требуется авторизация" }))
+    ws.close()
+    return
+  }
+
+  ws.user = user
   clients.add(ws)
 
-  // Приветствие от бота
+  broadcast({ type: "system", text: `${user.username} присоединился к чату`, time: time() })
+
   ws.send(JSON.stringify({
+    type: "bot",
     username: "Support Bot",
-    text: "Привет! Я бот поддержки FACEIT Clone. Чем могу помочь?",
-    time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-    isBot: true
+    text: `Привет, ${user.username}! Я бот поддержки FACEIT Clone. Чем могу помочь?`,
+    time: time(),
   }))
 
   ws.on("message", async (data) => {
-    const message = JSON.parse(data.toString())
+    try {
+      const { text } = JSON.parse(data.toString())
 
-    // Рассылаем сообщение всем
-    broadcast(message)
+      if (!text || !text.trim()) return
 
-    // Бот отвечает
-    const reply = await getBotReply(message.text)
-    setTimeout(() => {
-      broadcast({
-        username: "Support Bot",
-        text: reply,
-        time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-        isBot: true
-      })
-    }, 500)
+      broadcast({ type: "message", username: user!.username, text: text.trim(), time: time() })
+
+      const reply = await getBotReply(text.trim())
+      setTimeout(() => {
+        broadcast({ type: "bot", username: "Support Bot", text: reply, time: time() })
+      }, 500)
+    } catch (err) {
+      console.error("[WS ERROR]", err)
+    }
   })
 
   ws.on("close", () => {
     clients.delete(ws)
+    broadcast({ type: "system", text: `${user!.username} покинул чат`, time: time() })
   })
+})
+
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  const statusCode = err instanceof AppError ? err.statusCode : 500
+  const message = err.message || "Внутренняя ошибка сервера"
+
+  if (statusCode === 500) {
+    console.error(`[ERROR] ${err.message}\n${err.stack}`)
+  }
+
+  res.status(statusCode).json({ error: message })
+})
+
+process.on("uncaughtException", (err) => {
+  console.error(`[UNCAUGHT] ${err.message}\n${err.stack}`)
+  process.exit(1)
+})
+
+process.on("unhandledRejection", (reason) => {
+  console.error(`[UNHANDLED] ${reason}`)
 })
 
 server.listen(3001, () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "../../context/AuthContext"
 import "./LiveChat.css"
 
@@ -10,38 +10,35 @@ const LiveChat = () => {
   const ws = useRef(null)
   const bottomRef = useRef(null)
 
-  useEffect(() => {
+  const connect = useCallback(() => {
     ws.current = new WebSocket("ws://localhost:3001")
 
     ws.current.onmessage = (e) => {
       const msg = JSON.parse(e.data)
+      if (msg.type === "error") {
+        console.error("[WS]", msg.text)
+        return
+      }
       setMessages(prev => [...prev, msg])
     }
 
     ws.current.onclose = () => {
-      console.log("WebSocket отключён")
-    }
-
-    return () => {
-      ws.current?.close()
+      setTimeout(connect, 3000)
     }
   }, [])
+
+  useEffect(() => {
+    connect()
+    return () => ws.current?.close()
+  }, [connect])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
   const sendMessage = () => {
-    if (!input.trim()) return
-    if (!ws.current || ws.current.readyState !== WebSocket.OPEN) return
-
-    const msg = {
-      username: user ? user.username : "Гость",
-      text: input.trim(),
-      time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
-    }
-
-    ws.current.send(JSON.stringify(msg))
+    if (!input.trim() || !ws.current || ws.current.readyState !== WebSocket.OPEN) return
+    ws.current.send(JSON.stringify({ text: input.trim() }))
     setInput("")
   }
 
@@ -51,19 +48,13 @@ const LiveChat = () => {
 
   return (
     <div className="livechat">
-
-      {/* Кнопка */}
-      <button
-        className="livechat__toggle"
-        onClick={() => setOpen(!open)}
-      >
+      <button className="livechat__toggle" onClick={() => setOpen(!open)}>
         {open ? "✕" : "💬"}
         {!open && messages.length > 0 && (
           <span className="livechat__badge">{messages.length}</span>
         )}
       </button>
 
-      {/* Окно чата */}
       {open && (
         <div className="livechat__window">
           <div className="livechat__header">
@@ -76,11 +67,15 @@ const LiveChat = () => {
               <p className="livechat__empty">Нет сообщений. Начните общение!</p>
             )}
             {messages.map((msg, i) => (
-              <div key={i} className={`livechat__msg ${msg.username === user?.username ? "livechat__msg--own" : ""} ${msg.isBot ? "livechat__msg--bot" : ""}`}>
-                <span className="msg__username">{msg.username}</span>
-                <p className="msg__text">{msg.text}</p>
-                <span className="msg__time">{msg.time}</span>
-              </div>
+              msg.type === "system" ? (
+                <div key={i} className="livechat__system">{msg.text}</div>
+              ) : (
+                <div key={i} className={`livechat__msg ${msg.username === user?.username ? "livechat__msg--own" : ""} ${msg.type === "bot" ? "livechat__msg--bot" : ""}`}>
+                  {msg.type !== "bot" && <span className="msg__username">{msg.username}</span>}
+                  <p className="msg__text">{msg.text}</p>
+                  <span className="msg__time">{msg.time}</span>
+                </div>
+              )
             ))}
             <div ref={bottomRef} />
           </div>
@@ -95,13 +90,7 @@ const LiveChat = () => {
               onKeyDown={handleKey}
               disabled={!user}
             />
-            <button
-              className="livechat__send"
-              onClick={sendMessage}
-              disabled={!user}
-            >
-              ➤
-            </button>
+            <button className="livechat__send" onClick={sendMessage} disabled={!user}>➤</button>
           </div>
         </div>
       )}

@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express"
 import bcrypt from "bcryptjs"
 import { PrismaClient } from "@prisma/client"
+import { AppError } from "../index"
+import { requireAuth } from "../utils"
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -12,18 +14,12 @@ router.post("/register", async (req: Request, res: Response) => {
     where: { username }
   })
 
-  if (exists) {
-    res.status(400).json({ error: "Пользователь уже существует" })
-    return
-  }
+  if (exists) throw new AppError("Пользователь уже существует", 400)
 
   const hashedPassword = await bcrypt.hash(password, 10)
 
   const newUser = await prisma.user.create({
-    data:
-     { username,
-       password: hashedPassword,
-      elo: Math.floor(Math.random() * 2500) + 100 }
+    data: { username, password: hashedPassword, elo: Math.floor(Math.random() * 2500) + 100 }
   })
 
   res.cookie("user", JSON.stringify({ id: newUser.id, username }), {
@@ -41,16 +37,10 @@ router.post("/login", async (req: Request, res: Response) => {
     where: { username }
   })
 
-  if (!user) {
-    res.status(400).json({ error: "Неверный логин или пароль" })
-    return
-  }
+  if (!user) throw new AppError("Неверный логин или пароль", 400)
 
   const valid = await bcrypt.compare(password, user.password)
-  if (!valid) {
-    res.status(400).json({ error: "Неверный логин или пароль" })
-    return
-  }
+  if (!valid) throw new AppError("Неверный логин или пароль", 400)
 
   res.cookie("user", JSON.stringify({ id: user.id, username }), {
     httpOnly: true,
@@ -61,17 +51,14 @@ router.post("/login", async (req: Request, res: Response) => {
 })
 
 router.get("/me", async (req: Request, res: Response) => {
-  const userCookie = req.cookies.user
-  if (!userCookie) {
-    res.status(401).json({ error: "Не авторизован" })
-    return
-  }
-  const { id } = JSON.parse(userCookie)
+  const userId = requireAuth(req)
+
   const user = await prisma.user.findUnique({
-    where: { id },
+    where: { id: userId },
     select: { id: true, username: true, elo: true, description: true, region: true, avatar: true, createdAt: true }
   })
-  if (!user) { res.status(404).json({ error: "Не найден" }); return }
+
+  if (!user) throw new AppError("Не найден", 404)
   res.json(user)
 })
 
@@ -82,50 +69,27 @@ router.post("/logout", (req: Request, res: Response) => {
 
 router.get("/players", async (req: Request, res: Response) => {
   const players = await prisma.user.findMany({
-    select: {
-      id: true,
-      username: true,
-      elo: true,
-      region: true,
-      createdAt: true
-    }
+    select: { id: true, username: true, elo: true, region: true, createdAt: true }
   })
   res.json(players)
 })
 
-
 router.get("/players/:id", async (req: Request, res: Response) => {
   const player = await prisma.user.findUnique({
     where: { id: Number(req.params.id) },
-    select: {
-      id: true,
-      username: true,
-      elo: true,
-      region: true,
-      description: true,
-      createdAt: true
-    }
+    select: { id: true, username: true, elo: true, region: true, description: true, createdAt: true }
   })
 
-  if (!player) {
-    res.status(404).json({ error: "Игрок не найден" })
-    return
-  }
-
+  if (!player) throw new AppError("Игрок не найден", 404)
   res.json(player)
 })
 
-
-
 router.put("/profile", async (req: Request, res: Response) => {
-  const raw = req.cookies.user
-  if (!raw) { res.status(401).json({ error: "Не авторизован" }); return }
-
-  const { id } = JSON.parse(raw)
+  const userId = requireAuth(req)
   const { description, region, avatar } = req.body
 
   const updated = await prisma.user.update({
-    where: { id },
+    where: { id: userId },
     data: {
       ...(description !== undefined && { description }),
       ...(region !== undefined && { region }),
@@ -139,21 +103,11 @@ router.put("/profile", async (req: Request, res: Response) => {
 
 router.get("/leaderboard", async (req: Request, res: Response) => {
   const players = await prisma.user.findMany({
-    select: {
-      id: true,
-      username: true,
-      elo: true,
-      createdAt: true
-    },
-    orderBy: {
-      elo: "desc"
-    },
+    select: { id: true, username: true, elo: true, createdAt: true },
+    orderBy: { elo: "desc" },
     take: 100
   })
   res.json(players)
 })
-
-
-
 
 export default router

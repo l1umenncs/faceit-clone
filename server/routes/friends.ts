@@ -1,41 +1,31 @@
 import { Router, Request, Response } from "express"
 import { PrismaClient } from "@prisma/client"
 import { createNotification } from "./notifications"
+import { AppError } from "../index"
+import { requireAuth } from "../utils"
 
 const router = Router()
 const prisma = new PrismaClient()
-
-const getUserId = (req: Request): number | null => {
-  const raw = req.cookies.user
-  if (!raw) return null
-  try {
-    return JSON.parse(raw).id
-  } catch {
-    return null
-  }
-}
 
 const getUser = async (id: number) => {
   return prisma.user.findUnique({ where: { id }, select: { id: true, username: true } })
 }
 
-// заявка в друзья
 router.post("/request/:userId", async (req: Request, res: Response) => {
-  const senderId = getUserId(req)
-  if (!senderId) { res.status(401).json({ error: "Не авторизован" }); return }
-
+  const senderId = requireAuth(req)
   const receiverId = Number(req.params.userId)
-  if (senderId === receiverId) { res.status(400).json({ error: "Нельзя добавить себя" }); return }
+
+  if (senderId === receiverId) throw new AppError("Нельзя добавить себя", 400)
 
   const exists = await prisma.friendship.findUnique({
     where: { senderId_receiverId: { senderId, receiverId } }
   })
-  if (exists) { res.status(400).json({ error: "Заявка уже существует" }); return }
+  if (exists) throw new AppError("Заявка уже существует", 400)
 
   const reverse = await prisma.friendship.findUnique({
     where: { senderId_receiverId: { senderId: receiverId, receiverId: senderId } }
   })
-  if (reverse) { res.status(400).json({ error: "Заявка уже существует" }); return }
+  if (reverse) throw new AppError("Заявка уже существует", 400)
 
   const sender = await getUser(senderId)
 
@@ -50,21 +40,15 @@ router.post("/request/:userId", async (req: Request, res: Response) => {
   res.json({ message: "Заявка отправлена" })
 })
 
-// принять заявку
 router.post("/accept/:userId", async (req: Request, res: Response) => {
-  const userId = getUserId(req)
-  if (!userId) { res.status(401).json({ error: "Не авторизован" }); return }
-
+  const userId = requireAuth(req)
   const senderId = Number(req.params.userId)
 
   const friendship = await prisma.friendship.findUnique({
     where: { senderId_receiverId: { senderId, receiverId: userId } }
   })
 
-  if (!friendship || friendship.status !== "PENDING") {
-    res.status(400).json({ error: "Заявка не найдена" })
-    return
-  }
+  if (!friendship || friendship.status !== "PENDING") throw new AppError("Заявка не найдена", 400)
 
   const accepter = await getUser(userId)
 
@@ -80,32 +64,22 @@ router.post("/accept/:userId", async (req: Request, res: Response) => {
   res.json({ message: "Заявка принята" })
 })
 
-// отклонить заявку
 router.post("/reject/:userId", async (req: Request, res: Response) => {
-  const userId = getUserId(req)
-  if (!userId) { res.status(401).json({ error: "Не авторизован" }); return }
-
+  const userId = requireAuth(req)
   const senderId = Number(req.params.userId)
 
   const friendship = await prisma.friendship.findUnique({
     where: { senderId_receiverId: { senderId, receiverId: userId } }
   })
 
-  if (!friendship || friendship.status !== "PENDING") {
-    res.status(400).json({ error: "Заявка не найдена" })
-    return
-  }
+  if (!friendship || friendship.status !== "PENDING") throw new AppError("Заявка не найдена", 400)
 
   await prisma.friendship.delete({ where: { id: friendship.id } })
-
   res.json({ message: "Заявка отклонена" })
 })
 
-// удалить из друзей / отменить заявку
 router.delete("/:userId", async (req: Request, res: Response) => {
-  const userId = getUserId(req)
-  if (!userId) { res.status(401).json({ error: "Не авторизован" }); return }
-
+  const userId = requireAuth(req)
   const targetId = Number(req.params.userId)
 
   const f1 = await prisma.friendship.findUnique({
@@ -118,7 +92,7 @@ router.delete("/:userId", async (req: Request, res: Response) => {
   })
   if (f2) { await prisma.friendship.delete({ where: { id: f2.id } }); res.json({ message: "Удалено" }); return }
 
-  res.status(404).json({ error: "Не найдено" })
+  throw new AppError("Не найдено", 404)
 })
 
 const getFriendsList = async (userId: number) => {
@@ -138,31 +112,24 @@ const getFriendsList = async (userId: number) => {
   ]
 }
 
-// список друзей текущего пользователя
 router.get("/", async (req: Request, res: Response) => {
-  const userId = getUserId(req)
-  if (!userId) { res.status(401).json({ error: "Не авторизован" }); return }
-
+  const userId = requireAuth(req)
   const friends = await getFriendsList(userId)
   res.json(friends)
 })
 
-// список друзей конкретного пользователя
 router.get("/user/:userId", async (req: Request, res: Response) => {
   const userId = Number(req.params.userId)
 
   const user = await prisma.user.findUnique({ where: { id: userId } })
-  if (!user) { res.status(404).json({ error: "Пользователь не найден" }); return }
+  if (!user) throw new AppError("Пользователь не найден", 404)
 
   const friends = await getFriendsList(userId)
   res.json(friends)
 })
 
-// статус дружбы с конкретным пользователем
 router.get("/status/:userId", async (req: Request, res: Response) => {
-  const userId = getUserId(req)
-  if (!userId) { res.status(401).json({ error: "Не авторизован" }); return }
-
+  const userId = requireAuth(req)
   const targetId = Number(req.params.userId)
 
   const sent = await prisma.friendship.findUnique({
@@ -178,10 +145,8 @@ router.get("/status/:userId", async (req: Request, res: Response) => {
   res.json({ status: null, direction: null })
 })
 
-// входящие заявки
 router.get("/pending", async (req: Request, res: Response) => {
-  const userId = getUserId(req)
-  if (!userId) { res.status(401).json({ error: "Не авторизован" }); return }
+  const userId = requireAuth(req)
 
   const pending = await prisma.friendship.findMany({
     where: { receiverId: userId, status: "PENDING" },

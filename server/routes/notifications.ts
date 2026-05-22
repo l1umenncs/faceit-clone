@@ -1,18 +1,13 @@
 import { Router, Request, Response } from "express"
 import { PrismaClient } from "@prisma/client"
+import { AppError } from "../index"
+import { requireAuth } from "../utils"
 
 const router = Router()
 const prisma = new PrismaClient()
 
-const getUserId = (req: Request): number | null => {
-  const raw = req.cookies.user
-  if (!raw) return null
-  try { return JSON.parse(raw).id } catch { return null }
-}
-
 router.get("/", async (req: Request, res: Response) => {
-  const userId = getUserId(req)
-  if (!userId) { res.status(401).json({ error: "Не авторизован" }); return }
+  const userId = requireAuth(req)
 
   const notifications = await prisma.notification.findMany({
     where: { userId },
@@ -24,8 +19,7 @@ router.get("/", async (req: Request, res: Response) => {
 })
 
 router.post("/:id/read", async (req: Request, res: Response) => {
-  const userId = getUserId(req)
-  if (!userId) { res.status(401).json({ error: "Не авторизован" }); return }
+  const userId = requireAuth(req)
 
   await prisma.notification.updateMany({
     where: { id: Number(req.params.id), userId },
@@ -36,8 +30,7 @@ router.post("/:id/read", async (req: Request, res: Response) => {
 })
 
 router.post("/read-all", async (req: Request, res: Response) => {
-  const userId = getUserId(req)
-  if (!userId) { res.status(401).json({ error: "Не авторизован" }); return }
+  const userId = requireAuth(req)
 
   await prisma.notification.updateMany({
     where: { userId, read: false },
